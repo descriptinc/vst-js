@@ -1,1 +1,1 @@
-module.exports = require('./build/Release/vstjs.node')
+module.exports = require('./build/Debug/vstjs.node')

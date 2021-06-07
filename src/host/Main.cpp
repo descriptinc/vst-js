@@ -87,44 +87,44 @@ public:
       //    ScopedPointer<XmlElement> savedAudioState
       //    (appProperties->getUserSettings() ->getXmlValue
       //    ("audioDeviceState"));
-      ScopedPointer<XmlElement> savedAudioState =
+      std::unique_ptr<XmlElement> savedAudioState =
           appProperties->getUserSettings()->getXmlValue("audioDeviceState");
 
-      IPCAudioIODeviceType *ipcType = new IPCAudioIODeviceType(socketAddress);
-      deviceManager.addAudioDeviceType(ipcType);
+      auto ipcType = std::unique_ptr<AudioIODeviceType>(new IPCAudioIODeviceType(socketAddress));
+      deviceManager.addAudioDeviceType(std::move(ipcType));
       if (deviceManager.getCurrentAudioDeviceType() != "IPC") {
         deviceManager.setCurrentAudioDeviceType("IPC", true);
       }
 
-      deviceManager.initialise(256, 256, savedAudioState, true);
+      deviceManager.initialise(256, 256, savedAudioState.get(), true);
 
       OwnedArray<juce::PluginDescription> foundPlugins;
       VST3PluginFormat format;
       format.findAllTypesForFile(foundPlugins, pluginPath);
 
       description = foundPlugins[0];
-      AudioPluginInstance *instance = format.createInstanceFromDescription(
+      auto instance = format.createInstanceFromDescription(
           *description, setup.sampleRate, setup.bufferSize);
 
       // i/o graph nodes
-      inputProcessor = new AudioProcessorGraph::AudioGraphIOProcessor(
-          AudioProcessorGraph::AudioGraphIOProcessor::audioInputNode);
-      outputProcessor = new AudioProcessorGraph::AudioGraphIOProcessor(
-          AudioProcessorGraph::AudioGraphIOProcessor::audioOutputNode);
+      auto inputProcessor = std::unique_ptr<AudioProcessor>(new AudioProcessorGraph::AudioGraphIOProcessor(
+          AudioProcessorGraph::AudioGraphIOProcessor::audioInputNode));
+      auto outputProcessor = std::unique_ptr<AudioProcessor>(new AudioProcessorGraph::AudioGraphIOProcessor(
+          AudioProcessorGraph::AudioGraphIOProcessor::audioOutputNode));
 
-        deviceManager.addAudioCallback(&graphPlayer);
-        graphPlayer.setProcessor(&graph);
+      deviceManager.addAudioCallback(&graphPlayer);
+      graphPlayer.setProcessor(&graph);
 
       // Add all nodes to graph
-      inputNode = graph.addNode(inputProcessor);
-      pluginNode = graph.addNode(instance);
-      outputNode = graph.addNode(outputProcessor);
+      inputNode = std::unique_ptr<AudioProcessorGraph::Node>(graph.addNode(std::move(inputProcessor)));
+      pluginNode = std::unique_ptr<AudioProcessorGraph::Node>(graph.addNode(std::move(instance)));
+      outputNode = std::unique_ptr<AudioProcessorGraph::Node>(graph.addNode(std::move(outputProcessor)));
 
-      graph.addConnection(inputNode->nodeId, 0, pluginNode->nodeId, 0);
-      graph.addConnection(inputNode->nodeId, 1, pluginNode->nodeId, 1);
+      graph.addConnection({ { inputNode->nodeID, 0 }, { pluginNode->nodeID, 0 } });
+      graph.addConnection({ { inputNode->nodeID, 1 }, { pluginNode->nodeID, 1 } });
 
-      graph.addConnection(pluginNode->nodeId, 0, outputNode->nodeId, 0);
-      graph.addConnection(pluginNode->nodeId, 1, outputNode->nodeId, 1);
+      graph.addConnection({ { pluginNode->nodeID, 0 }, { outputNode->nodeID, 0 } });
+      graph.addConnection({ { pluginNode->nodeID, 1 }, { outputNode->nodeID, 1 } });
 
       // Get UI and add it to main window
       editor = instance->createEditor();
@@ -156,13 +156,13 @@ public:
     AudioProcessorGraph graph;
     AudioProcessorPlayer graphPlayer;
 
-    ScopedPointer<AudioProcessor> inputProcessor;
-    ScopedPointer<AudioProcessor> outputProcessor;
+    // std::unique_ptr<AudioProcessor> inputProcessor;
+    // ScopedPointer<AudioProcessor> outputProcessor;
 
-    ScopedPointer<AudioProcessorGraph::Node> inputNode;
-    ScopedPointer<AudioProcessorGraph::Node> outputNode;
+    std::unique_ptr<AudioProcessorGraph::Node> inputNode;
+    std::unique_ptr<AudioProcessorGraph::Node> outputNode;
 
-    ScopedPointer<AudioProcessorGraph::Node> pluginNode;
+    std::unique_ptr<AudioProcessorGraph::Node> pluginNode;
 
     ScopedPointer<ApplicationProperties> appProperties;
 

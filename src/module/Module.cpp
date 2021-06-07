@@ -1,22 +1,26 @@
 #include "PluginHostWrapper.h"
+#include <node_api.h>
 
-void CreateObject(const Nan::FunctionCallbackInfo<v8::Value> &info) {
-  info.GetReturnValue().Set(PluginHostWrapper::NewInstance(info[0]));
+Napi::Value CreateObject(const Napi::CallbackInfo &info) {
+  return PluginHostWrapper::NewInstance(info);
 }
 
-void InitAll(v8::Local<v8::Object> exports, v8::Local<v8::Object> module) {
-  Nan::HandleScope scope;
+Napi::Object InitAll(Napi::Env env, Napi::Object exports) {
+  Napi::HandleScope scope(env);
 
   // get the path of the .node file
-  v8::Local<v8::String> modulePathHandle = module->Get(Nan::New("filename").ToLocalChecked()).As<v8::String>();
-  std::string modulePath = *v8::String::Utf8Value(modulePathHandle);
+  const char* filename;
+  node_api_get_module_file_name(env, &filename);
+  std::string modulePath(filename);
   unsigned long lastSlash = modulePath.find_last_of("/");
-  std::string moduleDir = modulePath.substr(0,lastSlash);
+  // cut off file://
+  std::string moduleDir = modulePath.substr(7,lastSlash - 7);
 
-  PluginHostWrapper::Init(moduleDir);
+  PluginHostWrapper::Init(env, moduleDir);
 
-  exports->Set(Nan::New("launchPlugin").ToLocalChecked(),
-               Nan::New<v8::FunctionTemplate>(CreateObject)->GetFunction());
+  exports.Set("launchPlugin", Napi::Function::New(env, CreateObject));
+
+  return exports;
 }
 
-NODE_MODULE(vstjs, InitAll)
+NODE_API_MODULE(vstjs, InitAll)

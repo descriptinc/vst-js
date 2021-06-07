@@ -5,15 +5,16 @@
   },
   "dependencies": {
     "boost-lib": "^0.11.3",
-    "cmake-js": "3.4.1",
-    "nan": "2.5.1",
+    "cmake-js": "3.7.3",
+    "node-addon-api": "^3.2.1",
     "underscore": "^1.8.3"
   },
   "devDependencies": {
     "eslint": "^3.14.1",
     "eslint-config-airbnb-base": "^11.0.1",
     "eslint-plugin-import": "^2.2.0",
-    "speaker": "^0.3.0",
+    "segfault-handler": "^1.3.0",
+    "speaker": "^0.5.3",
     "wav": "^1.0.1",
     "web-audio-api": "^0.2.2"
   },
@@ -21,7 +22,8 @@
   "main": "index.js",
   "name": "vstjs",
   "scripts": {
-    "install": "cmake-js compile"
+    "postinstall": "cmake-js compile",
+    "build:dev": "cmake-js compile -D"
   },
   "version": "0.0.4"
 }

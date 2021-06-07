@@ -1,12 +1,23 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.9)
 
 message("CMAKE_JS_INC:" ${CMAKE_JS_INC})
 
+cmake_policy(SET CMP0042 NEW)
 set (CMAKE_CXX_STANDARD 11)
 set (PROJECT_NAME vstjs)
-set( EXECUTABLE_OUTPUT_PATH "${CMAKE_CURRENT_SOURCE_DIR}/build/Release")
-set( RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build/Release")
+if(CMAKE_BUILD_TYPE MATCHES Debug)
+    set( EXECUTABLE_OUTPUT_PATH "${CMAKE_CURRENT_SOURCE_DIR}/build/Debug")
+    set( RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build/Debug")
+else()
+    set( EXECUTABLE_OUTPUT_PATH "${CMAKE_CURRENT_SOURCE_DIR}/build/Release")
+    set( RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/build/Release")
+endif()  
 set (BIN_NAME vstjs-bin)
+
+# define NPI_VERSION
+add_definitions(-DNAPI_VERSION=7)
+add_definitions(-DNAPI_EXPERIMENTAL)
+add_definitions(-DJUCE_PLUGINHOST_VST=0)
 
 # Name of the project (will be the name of the plugin)
 project(vstjs)
@@ -19,7 +30,7 @@ else()
 endif()
 
 # Grab boost dependency via boost-lib npm module
-find_package ( Boost 1.60 COMPONENTS system REQUIRED)
+find_package ( Boost 1.76 COMPONENTS system REQUIRED)
 
 # Build a shared library named after the project from the files in `src/`
 file(GLOB BIN_SOURCE_FILES "src/host/*.cpp" "src/host/*.h" "src/host/JuceLibraryCode/*.mm")
@@ -49,6 +60,15 @@ target_include_directories(${BIN_NAME} PUBLIC
     ${CMAKE_SOURCE_DIR}/include/JUCE/modules
     ${VST3_SDK_PATH}
 )
+
+# Include N-API wrappers
+execute_process(COMMAND node -p "require('node-addon-api').include"
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_VARIABLE NODE_ADDON_API_DIR
+        )
+string(REPLACE "\n" "" NODE_ADDON_API_DIR ${NODE_ADDON_API_DIR})
+string(REPLACE "\"" "" NODE_ADDON_API_DIR ${NODE_ADDON_API_DIR})
+target_include_directories(${PROJECT_NAME} PRIVATE ${NODE_ADDON_API_DIR})
 
 # Essential library files to link to a node addon
 # You should add this line in every CMake.js based project

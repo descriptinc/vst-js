@@ -1,22 +1,23 @@
 #ifndef VSTJS_PLUGINHOSTWRAPPER_H
 #define VSTJS_PLUGINHOSTWRAPPER_H
 
-#include <nan.h>
+#include <napi.h>
 #include "PluginHost.h"
 #include "IPCAudioIOBuffer.h"
 
-class PluginHostWrapper : public Nan::ObjectWrap {
+class PluginHostWrapper : public Napi::ObjectWrap<PluginHostWrapper> {
 public:
-  static void Init(std::string moduleDirectory);
-  static v8::Local<v8::Object> NewInstance(v8::Local<v8::Value> arg);
-  static void Start(const Nan::FunctionCallbackInfo<v8::Value> &info);
-  static void Stop(const Nan::FunctionCallbackInfo<v8::Value> &info);
-  static void ProcessAudioBlock(const Nan::FunctionCallbackInfo<v8::Value> &info);
+  static void Init(Napi::Env env, std::string moduleDirectory);
+  static Napi::Value NewInstance(const Napi::CallbackInfo& info);
+  void Start(const Napi::CallbackInfo &info);
+  void Stop(const Napi::CallbackInfo &info);
+  void ProcessAudioBlock(const Napi::CallbackInfo &info);
+  PluginHostWrapper(const Napi::CallbackInfo &info);
 
 private:
-  PluginHostWrapper(std::string _shmemFile, std::string pluginPath);
-  static Nan::Persistent<v8::Function> constructor;
-  static void New(const Nan::FunctionCallbackInfo<v8::Value> &info);
+  // PluginHostWrapper(std::string _shmemFile, std::string pluginPath);
+  // static Napi::FunctionReference constructor;
+  static void New(const Napi::CallbackInfo &info);
   PluginHost host;
   static IPCAudioIOBuffer tempBuffer;
   static std::string moduleDirectory;
